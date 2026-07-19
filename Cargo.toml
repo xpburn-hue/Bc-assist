@@ -1,0 +1,15 @@
+[package]
+name = "bc-assist"
+version = "0.1.0"
+edition = "2021"
+
+[lib]
+name = "bc_assist"
+path = "src/lib.rs"
+
+[[bin]]
+name = "bc-assist"
+path = "src/main.rs"
+
+[dev-dependencies]
+approx = "0.5"
