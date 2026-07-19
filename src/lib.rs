@@ -1,5 +1,6 @@
 pub mod ballistic;
 pub mod models;
+pub mod sensors;
 
 #[cfg(test)]
 mod tests {
