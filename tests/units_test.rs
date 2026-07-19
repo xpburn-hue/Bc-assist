@@ -1,4 +1,6 @@
-use bc_assist::models::{BallisticCoefficient, DistanceYards, PressureInHg, PressurePascal, VelocityFps};
+use bc_assist::models::{
+    BallisticCoefficient, DistanceYards, PressureInHg, PressurePascal, VelocityFps,
+};
 
 #[test]
 fn distance_preserves_value() {
