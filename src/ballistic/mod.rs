@@ -1,4 +1,5 @@
 pub mod atmosphere;
+pub mod bc;
 pub mod domain;
 pub mod drag;
 pub mod integrator;
