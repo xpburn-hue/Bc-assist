@@ -1,3 +1,4 @@
+pub mod bc;
 pub mod g1;
 pub mod g7;
 pub mod lookup;
