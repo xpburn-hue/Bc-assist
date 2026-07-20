@@ -10,6 +10,12 @@ pub struct BulletWeightGrains(pub f64);
 #[derive(Debug, Clone, Copy)]
 pub struct BallisticCoefficient(pub f64);
 
+#[derive(Debug, Clone, Copy, PartialEq)]
+pub struct TemperatureF(pub f64);
+
+#[derive(Debug, Clone, Copy, PartialEq)]
+pub struct HumidityPercent(pub f64);
+
 /// Atmospheric pressure in inches of mercury.
 /// Commonly used by ballistic calculators and weather stations.
 #[derive(Debug, Clone, Copy)]
