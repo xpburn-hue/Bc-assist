@@ -19,11 +19,7 @@ pub const EXAMPLE_308_175_SMK: ProjectileFixture = ProjectileFixture {
 };
 
 pub fn fixture_velocity_samples() -> &'static [(f64, f64)] {
-    &[
-        (0.0, 2600.0),
-        (100.0, 2400.0),
-        (300.0, 2100.0),
-    ]
+    &[(0.0, 2600.0), (100.0, 2400.0), (300.0, 2100.0)]
 }
 
 #[cfg(test)]
