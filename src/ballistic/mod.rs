@@ -1,5 +1,6 @@
 pub mod atmosphere;
 pub mod bc;
+pub mod dataset;
 pub mod domain;
 pub mod drag;
 pub mod fixtures;
