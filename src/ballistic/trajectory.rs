@@ -18,8 +18,13 @@ pub struct Trajectory {
 }
 
 impl Trajectory {
-    pub fn new() -> Self { Self { points: Vec::new() } }
-    pub fn add_point(&mut self, point: TrajectoryPoint) { self.points.push(point); }
+    pub fn new() -> Self {
+        Self { points: Vec::new() }
+    }
+
+    pub fn add_point(&mut self, point: TrajectoryPoint) {
+        self.points.push(point);
+    }
 }
 
 #[derive(Debug, Clone, Copy)]
@@ -41,16 +46,23 @@ impl<D: DragFunction> PointMassSolver<D> {
                 time_of_flight_seconds: time,
                 energy_ft_lbs: 0.0,
             });
+
             let feet = 25.0 * 3.0;
             time += feet / velocity;
             velocity -= self.drag_model.retardation(velocity) * feet;
             distance += 25.0;
         }
+
         trajectory
     }
 }
 
-pub fn rk4_step_state<D: DragModel>(state: StateVector, time: f64, dt: f64, drag: D) -> StateVector {
+pub fn rk4_step_state<D: DragModel>(
+    state: StateVector,
+    time: f64,
+    dt: f64,
+    drag: D,
+) -> StateVector {
     StateVector::from_vec(&rk4_step(time, &state.as_vec(), dt, |t, y| {
         let current = StateVector::from_vec(y);
         let (ax, ay) = acceleration(&current, &drag);
