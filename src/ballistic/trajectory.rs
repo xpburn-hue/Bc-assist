@@ -63,7 +63,7 @@ pub fn rk4_step_state<D: DragModel>(
     dt: f64,
     drag: D,
 ) -> StateVector {
-    StateVector::from_vec(&rk4_step(time, &state.as_vec(), dt, |t, y| {
+    StateVector::from_vec(&rk4_step(time, &state.as_vec(), dt, |_t, y| {
         let current = StateVector::from_vec(y);
         let (ax, ay) = acceleration(&current, &drag);
         vec![current.velocity_x, current.velocity_y, ax, ay]
