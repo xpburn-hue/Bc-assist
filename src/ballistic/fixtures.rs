@@ -8,6 +8,18 @@ pub struct ProjectileFixture {
     pub bc: BallisticCoefficient,
 }
 
+#[derive(Debug, Clone, Copy)]
+pub struct VelocitySample {
+    pub distance_yards: f64,
+    pub velocity_fps: f64,
+}
+
+#[derive(Debug)]
+pub struct ProjectileDataset {
+    pub fixture: ProjectileFixture,
+    pub samples: &'static [VelocitySample],
+}
+
 pub const EXAMPLE_308_175_SMK: ProjectileFixture = ProjectileFixture {
     name: "308 175gr Match Projectile",
     mass_grains: 175.0,
@@ -18,9 +30,23 @@ pub const EXAMPLE_308_175_SMK: ProjectileFixture = ProjectileFixture {
     },
 };
 
-pub fn fixture_velocity_samples() -> &'static [(f64, f64)] {
-    &[(0.0, 2600.0), (100.0, 2400.0), (300.0, 2100.0)]
-}
+pub const EXAMPLE_308_175_SMK_DATA: ProjectileDataset = ProjectileDataset {
+    fixture: EXAMPLE_308_175_SMK,
+    samples: &[
+        VelocitySample {
+            distance_yards: 0.0,
+            velocity_fps: 2600.0,
+        },
+        VelocitySample {
+            distance_yards: 100.0,
+            velocity_fps: 2400.0,
+        },
+        VelocitySample {
+            distance_yards: 300.0,
+            velocity_fps: 2100.0,
+        },
+    ],
+};
 
 #[cfg(test)]
 mod tests {
@@ -30,6 +56,6 @@ mod tests {
     fn fixture_has_valid_parameters() {
         assert!(EXAMPLE_308_175_SMK.mass_grains > 0.0);
         assert!(EXAMPLE_308_175_SMK.bc.value > 0.0);
-        assert!(!fixture_velocity_samples().is_empty());
+        assert!(!EXAMPLE_308_175_SMK_DATA.samples.is_empty());
     }
 }
