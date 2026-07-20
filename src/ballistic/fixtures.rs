@@ -58,8 +58,7 @@ impl ProjectileDataset {
                     / (upper.distance_yards - lower.distance_yards);
 
                 return Some(
-                    lower.velocity_fps
-                        + fraction * (upper.velocity_fps - lower.velocity_fps),
+                    lower.velocity_fps + fraction * (upper.velocity_fps - lower.velocity_fps),
                 );
             }
         }
