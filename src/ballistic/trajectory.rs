@@ -1,11 +1,12 @@
-use crate::models::DistanceYards;
 use super::drag::DragFunction;
+use crate::models::DistanceYards;
 
 #[derive(Debug, Clone, Copy)]
 pub struct TrajectoryPoint {
     pub distance: DistanceYards,
     pub velocity_fps: f64,
     pub time_of_flight_seconds: f64,
+    pub energy_ft_lbs: f64,
 }
 
 #[derive(Debug, Clone, Default)]
@@ -17,8 +18,13 @@ impl Trajectory {
     pub fn new() -> Self {
         Self { points: Vec::new() }
     }
+
+    pub fn add_point(&mut self, point: TrajectoryPoint) {
+        self.points.push(point);
+    }
 }
 
+#[derive(Debug, Clone, Copy)]
 pub struct PointMassSolver<D: DragFunction> {
     pub drag_model: D,
 }
@@ -31,10 +37,11 @@ impl<D: DragFunction> PointMassSolver<D> {
         let mut distance = 0.0;
 
         while distance <= max_distance_yards {
-            trajectory.points.push(TrajectoryPoint {
+            trajectory.add_point(TrajectoryPoint {
                 distance: DistanceYards(distance),
                 velocity_fps: velocity,
                 time_of_flight_seconds: time,
+                energy_ft_lbs: 0.0,
             });
 
             let feet = 25.0 * 3.0;
