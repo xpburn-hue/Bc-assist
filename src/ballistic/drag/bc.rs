@@ -13,9 +13,7 @@ pub fn retardation_with_bc(
         return 0.0;
     }
 
-    velocity_fps
-        * coefficient_for_velocity(entries, velocity_fps)
-        / bc.value
+    velocity_fps * coefficient_for_velocity(entries, velocity_fps) / bc.value
         * atmosphere.density_ratio()
 }
 
@@ -34,9 +32,6 @@ mod tests {
         let bc = BallisticCoefficient::new(2.0, DragCurve::G1);
         let atmosphere = Atmosphere::standard();
 
-        assert_eq!(
-            retardation_with_bc(&table, 100.0, bc, atmosphere),
-            50.0
-        );
+        assert_eq!(retardation_with_bc(&table, 100.0, bc, atmosphere), 50.0);
     }
 }
