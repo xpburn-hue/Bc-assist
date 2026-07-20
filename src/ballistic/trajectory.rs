@@ -83,9 +83,6 @@ mod tests {
 
 pub struct PointMassSolver<D: DragFunction> {
     pub drag_model: D,
-}
-
-impl<D: DragFunction> PointMassSolver<D> {
     pub fn solve(&self, muzzle_velocity_fps: f64, max_distance_yards: f64) -> Trajectory {
         let mut trajectory = Trajectory::new();
         let mut velocity = muzzle_velocity_fps;
@@ -108,3 +105,4 @@ impl<D: DragFunction> PointMassSolver<D> {
         trajectory
     }
 }
+
