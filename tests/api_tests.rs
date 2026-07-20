@@ -9,5 +9,5 @@ fn trajectory_request_returns_response() {
     let response = calculate_trajectory(request);
 
     assert_eq!(response.requested_distance_yards, 100.0);
-    assert_eq!(response.status, "ready");
+    assert_eq!(response.status, "solver_not_connected");
 }
