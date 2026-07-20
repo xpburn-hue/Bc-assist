@@ -6,5 +6,8 @@ fn main() {
     };
 
     let response = calculate_trajectory(request);
-    println!("{} yards: {}", response.requested_distance_yards, response.status);
+    println!(
+    "{} yards: {}",
+    response.requested_distance_yards, response.status
+    );
 }
