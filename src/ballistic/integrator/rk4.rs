@@ -32,7 +32,14 @@ mod tests {
 
     #[test]
     fn exponential_growth() {
-        let result = rk4_step(0.0, &[1.0], 1.0, |_t, y| vec![y[0]]);
+        let mut result = vec![1.0];
+        let steps = 10;
+        let dt = 0.1;
+
+        for step in 0..steps {
+            result = rk4_step(step as f64 * dt, &result, dt, |_t, y| vec![y[0]]);
+        }
+
         assert!((result[0] - std::f64::consts::E).abs() < 0.001);
     }
 
