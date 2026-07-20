@@ -19,8 +19,7 @@ pub fn interpolate(entries: &[DragTableEntry], mach: f64) -> f64 {
 
         if mach <= upper.mach {
             let fraction = (mach - lower.mach) / (upper.mach - lower.mach);
-            return lower.coefficient
-                + fraction * (upper.coefficient - lower.coefficient);
+            return lower.coefficient + fraction * (upper.coefficient - lower.coefficient);
         }
     }
 
