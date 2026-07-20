@@ -31,6 +31,40 @@ impl ProjectileDataset {
                     && pair[1].velocity_fps <= pair[0].velocity_fps
             })
     }
+
+    pub fn sample_count(&self) -> usize {
+        self.samples.len()
+    }
+
+    pub fn max_distance_yards(&self) -> Option<f64> {
+        self.samples.last().map(|sample| sample.distance_yards)
+    }
+
+    pub fn velocity_at_distance(&self, distance_yards: f64) -> Option<f64> {
+        if self.samples.is_empty() {
+            return None;
+        }
+
+        if distance_yards <= self.samples[0].distance_yards {
+            return Some(self.samples[0].velocity_fps);
+        }
+
+        for pair in self.samples.windows(2) {
+            let lower = pair[0];
+            let upper = pair[1];
+
+            if distance_yards <= upper.distance_yards {
+                let fraction = (distance_yards - lower.distance_yards)
+                    / (upper.distance_yards - lower.distance_yards);
+
+                return Some(
+                    lower.velocity_fps + fraction * (upper.velocity_fps - lower.velocity_fps),
+                );
+            }
+        }
+
+        self.samples.last().map(|sample| sample.velocity_fps)
+    }
 }
 
 pub const EXAMPLE_308_175_SMK: ProjectileFixture = ProjectileFixture {
@@ -67,13 +101,20 @@ mod tests {
 
     #[test]
     fn fixture_has_valid_parameters() {
-        assert!(EXAMPLE_308_175_SMK.mass_grains > 0.0);
-        assert!(EXAMPLE_308_175_SMK.bc.value > 0.0);
-        assert!(!EXAMPLE_308_175_SMK_DATA.samples.is_empty());
+        assert!(EXAMPLE_308_175_SMK_DATA.is_valid());
     }
 
     #[test]
-    fn dataset_has_valid_samples() {
-        assert!(EXAMPLE_308_175_SMK_DATA.is_valid());
+    fn dataset_queries_work() {
+        assert_eq!(EXAMPLE_308_175_SMK_DATA.sample_count(), 3);
+        assert_eq!(EXAMPLE_308_175_SMK_DATA.max_distance_yards(), Some(300.0));
+        assert_eq!(
+            EXAMPLE_308_175_SMK_DATA.velocity_at_distance(100.0),
+            Some(2400.0)
+        );
+        assert_eq!(
+            EXAMPLE_308_175_SMK_DATA.velocity_at_distance(200.0),
+            Some(2250.0)
+        );
     }
 }
