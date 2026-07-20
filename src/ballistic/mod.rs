@@ -2,6 +2,8 @@ pub mod atmosphere;
 pub mod domain;
 pub mod drag;
 pub mod integrator;
+pub mod physics;
 pub mod projectile;
 pub mod solver;
+pub mod state;
 pub mod trajectory;

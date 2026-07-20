@@ -1,4 +1,7 @@
 use super::drag::DragFunction;
+use super::integrator::rk4_step;
+use super::physics::{acceleration, DragModel, NoDrag};
+use super::state::StateVector;
 use crate::models::DistanceYards;
 
 #[derive(Debug, Clone, Copy)]
@@ -52,4 +55,21 @@ impl<D: DragFunction> PointMassSolver<D> {
 
         trajectory
     }
+}
+
+pub fn rk4_step_state<D: DragModel>(
+    state: StateVector,
+    time: f64,
+    dt: f64,
+    drag: D,
+) -> StateVector {
+    StateVector::from_vec(&rk4_step(time, &state.as_vec(), dt, |_t, y| {
+        let current = StateVector::from_vec(y);
+        let (ax, ay) = acceleration(&current, &drag);
+        vec![current.velocity_x, current.velocity_y, ax, ay]
+    }))
+}
+
+pub fn free_flight_step(state: StateVector, time: f64, dt: f64) -> StateVector {
+    rk4_step_state(state, time, dt, NoDrag)
 }
