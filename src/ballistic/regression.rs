@@ -22,7 +22,11 @@ pub fn within_tolerance(actual: f64, expected: f64, tolerance_fps: f64) -> bool 
     velocity_error(actual, expected).abs() <= tolerance_fps
 }
 
-pub fn compare_point(point: &TrajectoryPoint, expected: RegressionPoint, tolerance_fps: f64) -> bool {
+pub fn compare_point(
+    point: &TrajectoryPoint,
+    expected: RegressionPoint,
+    tolerance_fps: f64,
+) -> bool {
     within_tolerance(
         point.velocity_fps,
         expected.expected_velocity_fps,
