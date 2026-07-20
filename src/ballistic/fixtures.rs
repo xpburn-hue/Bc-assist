@@ -20,6 +20,19 @@ pub struct ProjectileDataset {
     pub samples: &'static [VelocitySample],
 }
 
+impl ProjectileDataset {
+    pub fn is_valid(&self) -> bool {
+        self.fixture.mass_grains > 0.0
+            && self.fixture.muzzle_velocity_fps > 0.0
+            && self.fixture.bc.value > 0.0
+            && !self.samples.is_empty()
+            && self.samples.windows(2).all(|pair| {
+                pair[1].distance_yards >= pair[0].distance_yards
+                    && pair[1].velocity_fps <= pair[0].velocity_fps
+            })
+    }
+}
+
 pub const EXAMPLE_308_175_SMK: ProjectileFixture = ProjectileFixture {
     name: "308 175gr Match Projectile",
     mass_grains: 175.0,
@@ -57,5 +70,10 @@ mod tests {
         assert!(EXAMPLE_308_175_SMK.mass_grains > 0.0);
         assert!(EXAMPLE_308_175_SMK.bc.value > 0.0);
         assert!(!EXAMPLE_308_175_SMK_DATA.samples.is_empty());
+    }
+
+    #[test]
+    fn dataset_has_valid_samples() {
+        assert!(EXAMPLE_308_175_SMK_DATA.is_valid());
     }
 }
