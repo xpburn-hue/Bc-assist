@@ -83,17 +83,25 @@ mod tests {
 
 pub struct PointMassSolver<D: DragFunction> {
     pub drag_model: D,
-    pub fn solve(&self, muzzle_velocity_fps: f64, max_distance_yards: f64) -> Trajectory {
+}
+
+impl<D: DragFunction> PointMassSolver<D> {
+    pub fn solve(
+        &self,
+        muzzle_velocity_fps: f64,
+        max_distance_yards: f64,
+    ) -> Trajectory {
         let mut trajectory = Trajectory::new();
         let mut velocity = muzzle_velocity_fps;
         let mut time = 0.0;
         let mut distance = 0.0;
 
         while distance <= max_distance_yards {
-            trajectory.points.push(TrajectoryPoint {
+            trajectory.add_point(TrajectoryPoint {
                 distance: DistanceYards(distance),
                 velocity_fps: velocity,
                 time_of_flight_seconds: time,
+                energy_ft_lbs: 0.0,
             });
 
             let feet = 25.0 * 3.0;
