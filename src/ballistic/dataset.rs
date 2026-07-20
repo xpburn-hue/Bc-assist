@@ -1,12 +1,39 @@
 use serde::Deserialize;
 
 use super::bc::{BallisticCoefficient, DragCurve};
-use super::fixtures::{ProjectileDataset, ProjectileFixture, VelocitySample};
 
 #[derive(Debug)]
 pub enum DatasetImportError {
     ParseError(String),
     InvalidDataset,
+}
+
+#[derive(Debug)]
+pub struct ImportedProjectileDataset {
+    pub name: String,
+    pub mass_grains: f64,
+    pub muzzle_velocity_fps: f64,
+    pub bc: BallisticCoefficient,
+    pub samples: Vec<ImportedVelocitySample>,
+}
+
+#[derive(Debug, Clone)]
+pub struct ImportedVelocitySample {
+    pub distance_yards: f64,
+    pub velocity_fps: f64,
+}
+
+impl ImportedProjectileDataset {
+    fn is_valid(&self) -> bool {
+        self.mass_grains > 0.0
+            && self.muzzle_velocity_fps > 0.0
+            && self.bc.value > 0.0
+            && !self.samples.is_empty()
+            && self.samples.windows(2).all(|pair| {
+                pair[1].distance_yards >= pair[0].distance_yards
+                    && pair[1].velocity_fps <= pair[0].velocity_fps
+            })
+    }
 }
 
 #[derive(Debug, Deserialize)]
@@ -35,20 +62,20 @@ struct VelocitySampleFile {
     velocity_fps: f64,
 }
 
-pub fn from_json(input: &str) -> Result<ProjectileDataset, DatasetImportError> {
+pub fn from_json(input: &str) -> Result<ImportedProjectileDataset, DatasetImportError> {
     let file: DatasetFile = serde_json::from_str(input)
         .map_err(|error| DatasetImportError::ParseError(error.to_string()))?;
 
     build_dataset(file)
 }
 
-pub fn from_csv(input: &str) -> Result<ProjectileDataset, DatasetImportError> {
+pub fn from_csv(input: &str) -> Result<ImportedProjectileDataset, DatasetImportError> {
     let mut reader = csv::Reader::from_reader(input.as_bytes());
     let samples = reader
         .deserialize()
         .map(|result| {
             result
-                .map(|sample: VelocitySampleFile| VelocitySample {
+                .map(|sample: VelocitySampleFile| ImportedVelocitySample {
                     distance_yards: sample.distance_yards,
                     velocity_fps: sample.velocity_fps,
                 })
@@ -67,36 +94,32 @@ pub fn from_csv(input: &str) -> Result<ProjectileDataset, DatasetImportError> {
             },
         },
         samples: samples
-            .iter()
-            .map(|s| VelocitySampleFile {
-                distance_yards: s.distance_yards,
-                velocity_fps: s.velocity_fps,
+            .into_iter()
+            .map(|sample| VelocitySampleFile {
+                distance_yards: sample.distance_yards,
+                velocity_fps: sample.velocity_fps,
             })
             .collect(),
     })
 }
 
-fn build_dataset(file: DatasetFile) -> Result<ProjectileDataset, DatasetImportError> {
-    let dataset = ProjectileDataset {
-        fixture: ProjectileFixture {
-            name: Box::leak(file.projectile.name.into_boxed_str()),
-            mass_grains: file.projectile.mass_grains,
-            muzzle_velocity_fps: file.projectile.muzzle_velocity_fps,
-            bc: BallisticCoefficient {
-                value: file.projectile.bc.value,
-                curve: file.projectile.bc.curve,
-            },
+fn build_dataset(file: DatasetFile) -> Result<ImportedProjectileDataset, DatasetImportError> {
+    let dataset = ImportedProjectileDataset {
+        name: file.projectile.name,
+        mass_grains: file.projectile.mass_grains,
+        muzzle_velocity_fps: file.projectile.muzzle_velocity_fps,
+        bc: BallisticCoefficient {
+            value: file.projectile.bc.value,
+            curve: file.projectile.bc.curve,
         },
-        samples: Box::leak(
-            file.samples
-                .into_iter()
-                .map(|sample| VelocitySample {
-                    distance_yards: sample.distance_yards,
-                    velocity_fps: sample.velocity_fps,
-                })
-                .collect::<Vec<_>>()
-                .into_boxed_slice(),
-        ),
+        samples: file
+            .samples
+            .into_iter()
+            .map(|sample| ImportedVelocitySample {
+                distance_yards: sample.distance_yards,
+                velocity_fps: sample.velocity_fps,
+            })
+            .collect(),
     };
 
     if dataset.is_valid() {
