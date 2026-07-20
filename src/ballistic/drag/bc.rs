@@ -1,5 +1,5 @@
-use super::table::DragTableEntry;
 use super::lookup::coefficient_for_velocity;
+use super::table::DragTableEntry;
 use crate::ballistic::bc::BallisticCoefficient;
 
 pub fn retardation_with_bc(
