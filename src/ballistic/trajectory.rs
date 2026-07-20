@@ -73,3 +73,23 @@ pub fn rk4_step_state<D: DragModel>(
 pub fn free_flight_step(state: StateVector, time: f64, dt: f64) -> StateVector {
     rk4_step_state(state, time, dt, NoDrag)
 }
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    #[test]
+    fn free_flight_step_applies_gravity() {
+        let state = StateVector {
+            position_x: 0.0,
+            position_y: 0.0,
+            velocity_x: 1000.0,
+            velocity_y: 0.0,
+        };
+
+        let next = free_flight_step(state, 0.0, 0.01);
+
+        assert!(next.velocity_y < 0.0);
+        assert!(next.position_x > 0.0);
+    }
+}
