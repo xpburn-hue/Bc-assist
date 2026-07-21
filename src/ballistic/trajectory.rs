@@ -103,7 +103,13 @@ mod tests {
 
     #[test]
     fn integration_methods_produce_paths() {
-        let euler = PointMassSolver::new(super::super::drag::g1::G1, SolverConfig { integration_method: IntegrationMethod::Euler, ..Default::default() });
+        let euler = PointMassSolver::new(
+            super::super::drag::g1::G1,
+            SolverConfig {
+                integration_method: IntegrationMethod::Euler,
+                ..Default::default()
+            },
+        );
         let rk4 = PointMassSolver::new(super::super::drag::g1::G1, SolverConfig::default());
         assert_ne!(euler.solve(2800.0, 100.0).points.len(), 0);
         assert_ne!(rk4.solve(2800.0, 100.0).points.len(), 0);
