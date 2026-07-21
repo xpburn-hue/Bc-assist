@@ -6,6 +6,17 @@ pub struct BallisticOutput {
     pub drop_feet: f64,
 }
 
+#[derive(Debug, Clone, Default)]
+pub struct TrajectoryTable {
+    pub points: Vec<BallisticOutput>,
+}
+
+impl TrajectoryTable {
+    pub fn new(points: Vec<BallisticOutput>) -> Self {
+        Self { points }
+    }
+}
+
 pub fn energy_ft_lbs(mass_grains: f64, velocity_fps: f64) -> f64 {
     (mass_grains * velocity_fps.powi(2)) / 450240.0
 }
