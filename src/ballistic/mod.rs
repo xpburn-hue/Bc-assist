@@ -6,6 +6,7 @@ pub mod domain;
 pub mod drag;
 pub mod fixtures;
 pub mod integrator;
+pub mod outputs;
 pub mod physics;
 pub mod projectile;
 pub mod regression;
