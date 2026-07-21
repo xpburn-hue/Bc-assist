@@ -1,6 +1,8 @@
 use super::config::{IntegrationMethod, SolverConfig};
 use super::drag::DragFunction;
 use super::integrator::{euler_step, rk4_step};
+use super::outputs::{from_trajectory, TrajectoryTable};
+use super::projectile::Projectile;
 use super::state::StateVector;
 use crate::models::DistanceYards;
 
@@ -64,6 +66,16 @@ impl<D: DragFunction> PointMassSolver<D> {
             time += dt;
         }
         trajectory
+    }
+
+    pub fn solve_table(
+        &self,
+        muzzle_velocity_fps: f64,
+        projectile: &Projectile,
+        max_distance_yards: f64,
+    ) -> TrajectoryTable {
+        let trajectory = self.solve(muzzle_velocity_fps, max_distance_yards);
+        from_trajectory(&trajectory, projectile)
     }
 }
 
@@ -175,5 +187,22 @@ mod tests {
                 && b.time_of_flight_seconds < c.time_of_flight_seconds
         );
         assert!(a.drop_feet > b.drop_feet && b.drop_feet > c.drop_feet);
+    }
+
+    #[test]
+    fn solver_generates_output_table() {
+        let solver = PointMassSolver::new(super::super::drag::g1::G1, SolverConfig::default());
+        let projectile = Projectile::new(175.0, 0.505, 2800.0, 0.308);
+
+        let table = solver.solve_table(2800.0, &projectile, 300.0);
+
+        let a = table.at_distance(DistanceYards(100.0)).unwrap();
+        let b = table.at_distance(DistanceYards(200.0)).unwrap();
+        let c = table.at_distance(DistanceYards(300.0)).unwrap();
+
+        assert!(a.velocity_fps > b.velocity_fps);
+        assert!(b.velocity_fps > c.velocity_fps);
+        assert!(a.energy_ft_lbs > b.energy_ft_lbs);
+        assert!(b.energy_ft_lbs > c.energy_ft_lbs);
     }
 }
