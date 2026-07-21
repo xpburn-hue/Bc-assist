@@ -104,7 +104,7 @@ mod tests {
         assert!(a.energy_ft_lbs > b.energy_ft_lbs && b.energy_ft_lbs > c.energy_ft_lbs);
         assert!(
             a.time_of_flight_seconds < b.time_of_flight_seconds
-            && b.time_of_flight_seconds < c.time_of_flight_seconds
+                && b.time_of_flight_seconds < c.time_of_flight_seconds
         );
         assert!(a.drop_feet < b.drop_feet && b.drop_feet < c.drop_feet);
     }
