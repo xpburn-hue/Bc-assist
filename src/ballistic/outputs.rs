@@ -102,6 +102,11 @@ mod tests {
             ),
         ]);
 
-        assert_eq!(table.at_distance(DistanceYards(180.0)).unwrap().velocity_fps, 2300.0);
+        assert_eq!(
+            table
+            .at_distance(DistanceYards(180.0))
+            .unwrap()
+            .velocity_fps, 
+            2300.0);
     }
 }
