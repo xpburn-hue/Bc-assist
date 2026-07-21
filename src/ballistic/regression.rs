@@ -110,6 +110,7 @@ mod tests {
                 .map(|sample| TrajectoryPoint {
                     distance: crate::models::DistanceYards(sample.distance_yards),
                     velocity_fps: sample.velocity_fps,
+                    drop_feet: 0.0,
                     time_of_flight_seconds: 0.0,
                     energy_ft_lbs: 0.0,
                 })
@@ -126,6 +127,7 @@ mod tests {
             points: vec![TrajectoryPoint {
                 distance: crate::models::DistanceYards(0.0),
                 velocity_fps: 2000.0,
+                drop_feet: 0.0,
                 time_of_flight_seconds: 0.0,
                 energy_ft_lbs: 0.0,
             }],

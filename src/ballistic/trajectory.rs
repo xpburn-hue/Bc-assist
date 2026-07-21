@@ -8,6 +8,7 @@ use crate::models::DistanceYards;
 pub struct TrajectoryPoint {
     pub distance: DistanceYards,
     pub velocity_fps: f64,
+    pub drop_feet: f64,
     pub time_of_flight_seconds: f64,
     pub energy_ft_lbs: f64,
 }
@@ -47,16 +48,15 @@ impl<D: DragFunction> PointMassSolver<D> {
             velocity_y: 0.0,
         };
         let mut time = 0.0;
-        let step = self.config.step_size_yards;
-
         while state.position_x / 3.0 <= max_distance_yards {
             trajectory.add_point(TrajectoryPoint {
                 distance: DistanceYards(state.position_x / 3.0),
                 velocity_fps: state.velocity_x,
+                drop_feet: state.position_y,
                 time_of_flight_seconds: time,
                 energy_ft_lbs: 0.0,
             });
-            let dt = (step * 3.0) / state.velocity_x.max(1.0);
+            let dt = (self.config.step_size_yards * 3.0) / state.velocity_x.max(1.0);
             state = match self.config.integration_method {
                 IntegrationMethod::Euler => euler_step_state(state, time, dt, &self.drag_model),
                 IntegrationMethod::RK4 => rk4_step_state(state, time, dt, &self.drag_model),
@@ -107,6 +107,8 @@ fn rk4_step_state<D: DragFunction>(
 #[cfg(test)]
 mod tests {
     use super::*;
+    use crate::ballistic::outputs::from_trajectory;
+    use crate::ballistic::projectile::Projectile;
 
     #[test]
     fn integration_methods_produce_paths() {
@@ -120,5 +122,58 @@ mod tests {
         let rk4 = PointMassSolver::new(super::super::drag::g1::G1, SolverConfig::default());
         assert_ne!(euler.solve(2800.0, 100.0).points.len(), 0);
         assert_ne!(rk4.solve(2800.0, 100.0).points.len(), 0);
+    }
+
+    #[test]
+    fn step_size_regression_produces_consistent_results() {
+        let coarse = PointMassSolver::new(
+            super::super::drag::g1::G1,
+            SolverConfig {
+                step_size_yards: 1.0,
+                ..Default::default()
+            },
+        )
+        .solve(2800.0, 300.0);
+        let fine = PointMassSolver::new(
+            super::super::drag::g1::G1,
+            SolverConfig {
+                step_size_yards: 0.25,
+                ..Default::default()
+            },
+        )
+        .solve(2800.0, 300.0);
+        assert!(fine.points.len() > coarse.points.len());
+        for d in [100.0, 200.0, 300.0] {
+            let c = coarse
+                .points
+                .iter()
+                .min_by_key(|p| ((p.distance.0 - d).abs() * 1000.0) as i64)
+                .unwrap();
+            let f = fine
+                .points
+                .iter()
+                .min_by_key(|p| ((p.distance.0 - d).abs() * 1000.0) as i64)
+                .unwrap();
+            assert!((c.velocity_fps - f.velocity_fps).abs() < 20.0);
+            assert!((c.drop_feet - f.drop_feet).abs() < 0.25);
+        }
+    }
+
+    #[test]
+    fn trajectory_values_are_monotonic() {
+        let trajectory = PointMassSolver::new(super::super::drag::g1::G1, SolverConfig::default())
+            .solve(2800.0, 300.0);
+        let projectile = Projectile::new(175.0, 0.505, 2800.0, 0.308);
+        let table = from_trajectory(&trajectory, &projectile);
+        let a = table.at_distance(DistanceYards(100.0)).unwrap();
+        let b = table.at_distance(DistanceYards(200.0)).unwrap();
+        let c = table.at_distance(DistanceYards(300.0)).unwrap();
+        assert!(a.velocity_fps > b.velocity_fps && b.velocity_fps > c.velocity_fps);
+        assert!(a.energy_ft_lbs > b.energy_ft_lbs && b.energy_ft_lbs > c.energy_ft_lbs);
+        assert!(
+            a.time_of_flight_seconds < b.time_of_flight_seconds
+                && b.time_of_flight_seconds < c.time_of_flight_seconds
+        );
+        assert!(a.drop_feet > b.drop_feet && b.drop_feet > c.drop_feet);
     }
 }
