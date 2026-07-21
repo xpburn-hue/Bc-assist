@@ -93,7 +93,8 @@ mod tests {
 
     #[test]
     fn trajectory_values_are_monotonic() {
-        let trajectory = PointMassSolver::new(super::super::drag::g1::G1, SolverConfig::default()).solve(2800.0, 300.0);
+        let trajectory = PointMassSolver::new(super::super::drag::g1::G1, SolverConfig::default())
+            .solve(2800.0, 300.0);
         let projectile = Projectile::new(175.0, 0.505, 2800.0, 0.308);
         let table = from_trajectory(&trajectory, &projectile);
         let a = table.at_distance(DistanceYards(100.0)).unwrap();
@@ -101,7 +102,10 @@ mod tests {
         let c = table.at_distance(DistanceYards(300.0)).unwrap();
         assert!(a.velocity_fps > b.velocity_fps && b.velocity_fps > c.velocity_fps);
         assert!(a.energy_ft_lbs > b.energy_ft_lbs && b.energy_ft_lbs > c.energy_ft_lbs);
-        assert!(a.time_of_flight_seconds < b.time_of_flight_seconds && b.time_of_flight_seconds < c.time_of_flight_seconds);
+        assert!(
+            a.time_of_flight_seconds < b.time_of_flight_seconds
+            && b.time_of_flight_seconds < c.time_of_flight_seconds
+        );
         assert!(a.drop_feet < b.drop_feet && b.drop_feet < c.drop_feet);
     }
 }
