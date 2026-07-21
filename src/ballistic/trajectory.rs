@@ -191,8 +191,7 @@ mod tests {
 
     #[test]
     fn solver_generates_output_table() {
-        let solver =
-            PointMassSolver::new(super::super::drag::g1::G1, SolverConfig::default());
+        let solver = PointMassSolver::new(super::super::drag::g1::G1, SolverConfig::default());
         let projectile = Projectile::new(175.0, 0.505, 2800.0, 0.308);
 
         let table = solver.solve_table(2800.0, &projectile, 300.0);
