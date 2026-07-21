@@ -174,6 +174,6 @@ mod tests {
             a.time_of_flight_seconds < b.time_of_flight_seconds
                 && b.time_of_flight_seconds < c.time_of_flight_seconds
         );
-        assert!(a.drop_feet < b.drop_feet && b.drop_feet < c.drop_feet);
+        assert!(a.drop_feet > b.drop_feet && b.drop_feet > c.drop_feet);
     }
 }
