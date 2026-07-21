@@ -8,6 +8,7 @@ use crate::models::DistanceYards;
 pub struct TrajectoryPoint {
     pub distance: DistanceYards,
     pub velocity_fps: f64,
+    pub drop_feet: f64,
     pub time_of_flight_seconds: f64,
     pub energy_ft_lbs: f64,
 }
@@ -53,6 +54,7 @@ impl<D: DragFunction> PointMassSolver<D> {
             trajectory.add_point(TrajectoryPoint {
                 distance: DistanceYards(state.position_x / 3.0),
                 velocity_fps: state.velocity_x,
+                drop_feet: state.position_y,
                 time_of_flight_seconds: time,
                 energy_ft_lbs: 0.0,
             });
@@ -82,23 +84,13 @@ fn derivative<D: DragFunction>(state: &StateVector, drag: &D) -> Vec<f64> {
     ]
 }
 
-fn euler_step_state<D: DragFunction>(
-    state: StateVector,
-    time: f64,
-    dt: f64,
-    drag: &D,
-) -> StateVector {
+fn euler_step_state<D: DragFunction>(state: StateVector, time: f64, dt: f64, drag: &D) -> StateVector {
     StateVector::from_vec(&euler_step(time, &state.as_vec(), dt, |_t, y| {
         derivative(&StateVector::from_vec(y), drag)
     }))
 }
 
-fn rk4_step_state<D: DragFunction>(
-    state: StateVector,
-    time: f64,
-    dt: f64,
-    drag: &D,
-) -> StateVector {
+fn rk4_step_state<D: DragFunction>(state: StateVector, time: f64, dt: f64, drag: &D) -> StateVector {
     StateVector::from_vec(&rk4_step(time, &state.as_vec(), dt, |_t, y| {
         derivative(&StateVector::from_vec(y), drag)
     }))
