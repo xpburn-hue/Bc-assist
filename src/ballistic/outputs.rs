@@ -1,3 +1,6 @@
+use super::projectile::Projectile;
+use super::trajectory::Trajectory;
+
 #[derive(Debug, Clone, Copy, PartialEq)]
 pub struct BallisticOutput {
     pub velocity_fps: f64,
@@ -15,6 +18,25 @@ impl TrajectoryTable {
     pub fn new(points: Vec<BallisticOutput>) -> Self {
         Self { points }
     }
+
+    pub fn at_index(&self, index: usize) -> Option<BallisticOutput> {
+        self.points.get(index).copied()
+    }
+}
+
+pub fn from_trajectory(trajectory: &Trajectory, projectile: &Projectile) -> TrajectoryTable {
+    TrajectoryTable::new(
+        trajectory
+            .points
+            .iter()
+            .map(|point| BallisticOutput {
+                velocity_fps: point.velocity_fps,
+                energy_ft_lbs: energy_ft_lbs(projectile.weight.0, point.velocity_fps),
+                time_of_flight_seconds: point.time_of_flight_seconds,
+                drop_feet: point.drop_feet,
+            })
+            .collect(),
+    )
 }
 
 pub fn energy_ft_lbs(mass_grains: f64, velocity_fps: f64) -> f64 {
