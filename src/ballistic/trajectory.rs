@@ -14,42 +14,23 @@ pub struct TrajectoryPoint {
 }
 
 #[derive(Debug, Clone, Default)]
-pub struct Trajectory {
-    pub points: Vec<TrajectoryPoint>,
-}
+pub struct Trajectory { pub points: Vec<TrajectoryPoint> }
 
 impl Trajectory {
-    pub fn new() -> Self {
-        Self { points: Vec::new() }
-    }
-
-    pub fn add_point(&mut self, point: TrajectoryPoint) {
-        self.points.push(point);
-    }
+    pub fn new() -> Self { Self { points: Vec::new() } }
+    pub fn add_point(&mut self, point: TrajectoryPoint) { self.points.push(point); }
 }
 
 #[derive(Debug, Clone, Copy)]
-pub struct PointMassSolver<D: DragFunction> {
-    pub drag_model: D,
-    pub config: SolverConfig,
-}
+pub struct PointMassSolver<D: DragFunction> { pub drag_model: D, pub config: SolverConfig }
 
 impl<D: DragFunction> PointMassSolver<D> {
-    pub fn new(drag_model: D, config: SolverConfig) -> Self {
-        Self { drag_model, config }
-    }
+    pub fn new(drag_model: D, config: SolverConfig) -> Self { Self { drag_model, config } }
 
     pub fn solve(&self, muzzle_velocity_fps: f64, max_distance_yards: f64) -> Trajectory {
         let mut trajectory = Trajectory::new();
-        let mut state = StateVector {
-            position_x: 0.0,
-            position_y: 0.0,
-            velocity_x: muzzle_velocity_fps,
-            velocity_y: 0.0,
-        };
+        let mut state = StateVector { position_x: 0.0, position_y: 0.0, velocity_x: muzzle_velocity_fps, velocity_y: 0.0 };
         let mut time = 0.0;
-        let step = self.config.step_size_yards;
-
         while state.position_x / 3.0 <= max_distance_yards {
             trajectory.add_point(TrajectoryPoint {
                 distance: DistanceYards(state.position_x / 3.0),
@@ -58,7 +39,7 @@ impl<D: DragFunction> PointMassSolver<D> {
                 time_of_flight_seconds: time,
                 energy_ft_lbs: 0.0,
             });
-            let dt = (step * 3.0) / state.velocity_x.max(1.0);
+            let dt = (self.config.step_size_yards * 3.0) / state.velocity_x.max(1.0);
             state = match self.config.integration_method {
                 IntegrationMethod::Euler => euler_step_state(state, time, dt, &self.drag_model),
                 IntegrationMethod::RK4 => rk4_step_state(state, time, dt, &self.drag_model),
@@ -72,24 +53,15 @@ impl<D: DragFunction> PointMassSolver<D> {
 fn derivative<D: DragFunction>(state: &StateVector, drag: &D) -> Vec<f64> {
     let speed = (state.velocity_x.powi(2) + state.velocity_y.powi(2)).sqrt();
     let drag_accel = if speed > 0.0 { drag.retardation(speed) } else { 0.0 };
-    vec![
-        state.velocity_x,
-        state.velocity_y,
-        -drag_accel * state.velocity_x / speed.max(1.0),
-        -9.80665 - drag_accel * state.velocity_y / speed.max(1.0),
-    ]
+    vec![state.velocity_x, state.velocity_y, -drag_accel * state.velocity_x / speed.max(1.0), -9.80665 - drag_accel * state.velocity_y / speed.max(1.0)]
 }
 
 fn euler_step_state<D: DragFunction>(state: StateVector, time: f64, dt: f64, drag: &D) -> StateVector {
-    StateVector::from_vec(&euler_step(time, &state.as_vec(), dt, |_t, y| {
-        derivative(&StateVector::from_vec(y), drag)
-    }))
+    StateVector::from_vec(&euler_step(time, &state.as_vec(), dt, |_t, y| derivative(&StateVector::from_vec(y), drag)))
 }
 
 fn rk4_step_state<D: DragFunction>(state: StateVector, time: f64, dt: f64, drag: &D) -> StateVector {
-    StateVector::from_vec(&rk4_step(time, &state.as_vec(), dt, |_t, y| {
-        derivative(&StateVector::from_vec(y), drag)
-    }))
+    StateVector::from_vec(&rk4_step(time, &state.as_vec(), dt, |_t, y| derivative(&StateVector::from_vec(y), drag)))
 }
 
 #[cfg(test)]
@@ -100,13 +72,7 @@ mod tests {
 
     #[test]
     fn integration_methods_produce_paths() {
-        let euler = PointMassSolver::new(
-            super::super::drag::g1::G1,
-            SolverConfig {
-                integration_method: IntegrationMethod::Euler,
-                ..Default::default()
-            },
-        );
+        let euler = PointMassSolver::new(super::super::drag::g1::G1, SolverConfig { integration_method: IntegrationMethod::Euler, ..Default::default() });
         let rk4 = PointMassSolver::new(super::super::drag::g1::G1, SolverConfig::default());
         assert_ne!(euler.solve(2800.0, 100.0).points.len(), 0);
         assert_ne!(rk4.solve(2800.0, 100.0).points.len(), 0);
@@ -114,24 +80,12 @@ mod tests {
 
     #[test]
     fn step_size_regression_produces_consistent_results() {
-        let coarse = PointMassSolver::new(
-            super::super::drag::g1::G1,
-            SolverConfig { step_size_yards: 1.0, ..Default::default() },
-        )
-        .solve(2800.0, 300.0);
-        let fine = PointMassSolver::new(
-            super::super::drag::g1::G1,
-            SolverConfig { step_size_yards: 0.25, ..Default::default() },
-        )
-        .solve(2800.0, 300.0);
-
-        assert!(!coarse.points.is_empty());
-        assert!(!fine.points.is_empty());
+        let coarse = PointMassSolver::new(super::super::drag::g1::G1, SolverConfig { step_size_yards: 1.0, ..Default::default() }).solve(2800.0, 300.0);
+        let fine = PointMassSolver::new(super::super::drag::g1::G1, SolverConfig { step_size_yards: 0.25, ..Default::default() }).solve(2800.0, 300.0);
         assert!(fine.points.len() > coarse.points.len());
-
-        for distance in [100.0, 200.0, 300.0] {
-            let c = coarse.points.iter().min_by_key(|p| ((p.distance.0 - distance).abs() * 1000.0) as i64).unwrap();
-            let f = fine.points.iter().min_by_key(|p| ((p.distance.0 - distance).abs() * 1000.0) as i64).unwrap();
+        for d in [100.0, 200.0, 300.0] {
+            let c = coarse.points.iter().min_by_key(|p| ((p.distance.0 - d).abs() * 1000.0) as i64).unwrap();
+            let f = fine.points.iter().min_by_key(|p| ((p.distance.0 - d).abs() * 1000.0) as i64).unwrap();
             assert!((c.velocity_fps - f.velocity_fps).abs() < 20.0);
             assert!((c.drop_feet - f.drop_feet).abs() < 0.25);
         }
@@ -139,15 +93,12 @@ mod tests {
 
     #[test]
     fn trajectory_values_are_monotonic() {
-        let trajectory = PointMassSolver::new(super::super::drag::g1::G1, SolverConfig::default())
-            .solve(2800.0, 300.0);
-        let projectile = Projectile::example();
+        let trajectory = PointMassSolver::new(super::super::drag::g1::G1, SolverConfig::default()).solve(2800.0, 300.0);
+        let projectile = Projectile::new(175.0, 0.505, 2800.0, 0.308);
         let table = from_trajectory(&trajectory, &projectile);
-
         let a = table.at_distance(DistanceYards(100.0)).unwrap();
         let b = table.at_distance(DistanceYards(200.0)).unwrap();
         let c = table.at_distance(DistanceYards(300.0)).unwrap();
-
         assert!(a.velocity_fps > b.velocity_fps && b.velocity_fps > c.velocity_fps);
         assert!(a.energy_ft_lbs > b.energy_ft_lbs && b.energy_ft_lbs > c.energy_ft_lbs);
         assert!(a.time_of_flight_seconds < b.time_of_flight_seconds && b.time_of_flight_seconds < c.time_of_flight_seconds);
