@@ -3,7 +3,7 @@ use super::atmosphere::Atmosphere;
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
 pub enum IntegrationMethod {
     Euler,
-    Rk4,
+    RK4,
 }
 
 #[derive(Debug, Clone, Copy)]
@@ -18,7 +18,7 @@ impl Default for SolverConfig {
         Self {
             step_size_yards: 1.0,
             atmosphere: Atmosphere::standard(),
-            integration_method: IntegrationMethod::Rk4,
+            integration_method: IntegrationMethod::RK4,
         }
     }
 }
