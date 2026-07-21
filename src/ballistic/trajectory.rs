@@ -162,7 +162,7 @@ mod tests {
     #[test]
     fn trajectory_values_are_monotonic() {
         let trajectory = PointMassSolver::new(super::super::drag::g1::G1, SolverConfig::default())
-                .solve(2800.0, 300.0);
+            .solve(2800.0, 300.0);
         let projectile = Projectile::new(175.0, 0.505, 2800.0, 0.308);
         let table = from_trajectory(&trajectory, &projectile);
         let a = table.at_distance(DistanceYards(100.0)).unwrap();
