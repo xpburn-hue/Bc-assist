@@ -71,11 +71,7 @@ impl<D: DragFunction> PointMassSolver<D> {
 
 fn derivative<D: DragFunction>(state: &StateVector, drag: &D) -> Vec<f64> {
     let speed = (state.velocity_x.powi(2) + state.velocity_y.powi(2)).sqrt();
-    let drag_accel = if speed > 0.0 {
-        drag.retardation(speed)
-    } else {
-        0.0
-    };
+    let drag_accel = if speed > 0.0 { drag.retardation(speed) } else { 0.0 };
     vec![
         state.velocity_x,
         state.velocity_y,
@@ -99,6 +95,8 @@ fn rk4_step_state<D: DragFunction>(state: StateVector, time: f64, dt: f64, drag:
 #[cfg(test)]
 mod tests {
     use super::*;
+    use crate::ballistic::outputs::from_trajectory;
+    use crate::ballistic::projectile::Projectile;
 
     #[test]
     fn integration_methods_produce_paths() {
@@ -112,5 +110,47 @@ mod tests {
         let rk4 = PointMassSolver::new(super::super::drag::g1::G1, SolverConfig::default());
         assert_ne!(euler.solve(2800.0, 100.0).points.len(), 0);
         assert_ne!(rk4.solve(2800.0, 100.0).points.len(), 0);
+    }
+
+    #[test]
+    fn step_size_regression_produces_consistent_results() {
+        let coarse = PointMassSolver::new(
+            super::super::drag::g1::G1,
+            SolverConfig { step_size_yards: 1.0, ..Default::default() },
+        )
+        .solve(2800.0, 300.0);
+        let fine = PointMassSolver::new(
+            super::super::drag::g1::G1,
+            SolverConfig { step_size_yards: 0.25, ..Default::default() },
+        )
+        .solve(2800.0, 300.0);
+
+        assert!(!coarse.points.is_empty());
+        assert!(!fine.points.is_empty());
+        assert!(fine.points.len() > coarse.points.len());
+
+        for distance in [100.0, 200.0, 300.0] {
+            let c = coarse.points.iter().min_by_key(|p| ((p.distance.0 - distance).abs() * 1000.0) as i64).unwrap();
+            let f = fine.points.iter().min_by_key(|p| ((p.distance.0 - distance).abs() * 1000.0) as i64).unwrap();
+            assert!((c.velocity_fps - f.velocity_fps).abs() < 20.0);
+            assert!((c.drop_feet - f.drop_feet).abs() < 0.25);
+        }
+    }
+
+    #[test]
+    fn trajectory_values_are_monotonic() {
+        let trajectory = PointMassSolver::new(super::super::drag::g1::G1, SolverConfig::default())
+            .solve(2800.0, 300.0);
+        let projectile = Projectile::example();
+        let table = from_trajectory(&trajectory, &projectile);
+
+        let a = table.at_distance(DistanceYards(100.0)).unwrap();
+        let b = table.at_distance(DistanceYards(200.0)).unwrap();
+        let c = table.at_distance(DistanceYards(300.0)).unwrap();
+
+        assert!(a.velocity_fps > b.velocity_fps && b.velocity_fps > c.velocity_fps);
+        assert!(a.energy_ft_lbs > b.energy_ft_lbs && b.energy_ft_lbs > c.energy_ft_lbs);
+        assert!(a.time_of_flight_seconds < b.time_of_flight_seconds && b.time_of_flight_seconds < c.time_of_flight_seconds);
+        assert!(a.drop_feet < b.drop_feet && b.drop_feet < c.drop_feet);
     }
 }
