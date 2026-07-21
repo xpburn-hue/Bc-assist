@@ -1,3 +1,4 @@
+use super::config::{IntegrationMethod, SolverConfig};
 use super::drag::DragFunction;
 use super::integrator::rk4_step;
 use super::physics::{acceleration, DragModel, NoDrag};
@@ -30,14 +31,20 @@ impl Trajectory {
 #[derive(Debug, Clone, Copy)]
 pub struct PointMassSolver<D: DragFunction> {
     pub drag_model: D,
+    pub config: SolverConfig,
 }
 
 impl<D: DragFunction> PointMassSolver<D> {
+    pub fn new(drag_model: D, config: SolverConfig) -> Self {
+        Self { drag_model, config }
+    }
+
     pub fn solve(&self, muzzle_velocity_fps: f64, max_distance_yards: f64) -> Trajectory {
         let mut trajectory = Trajectory::new();
         let mut velocity = muzzle_velocity_fps;
         let mut time = 0.0;
         let mut distance = 0.0;
+        let step = self.config.step_size_yards;
 
         while distance <= max_distance_yards {
             trajectory.add_point(TrajectoryPoint {
@@ -47,10 +54,16 @@ impl<D: DragFunction> PointMassSolver<D> {
                 energy_ft_lbs: 0.0,
             });
 
-            let feet = 25.0 * 3.0;
+            let feet = step * 3.0;
             time += feet / velocity;
-            velocity -= self.drag_model.retardation(velocity) * feet;
-            distance += 25.0;
+
+            match self.config.integration_method {
+                IntegrationMethod::Euler | IntegrationMethod::Rk4 => {
+                    velocity -= self.drag_model.retardation(velocity) * feet;
+                }
+            }
+
+            distance += step;
         }
 
         trajectory
