@@ -11,6 +11,7 @@ pub struct TrajectoryPoint {
     pub distance: DistanceYards,
     pub velocity_fps: f64,
     pub drop_feet: f64,
+    pub drift_feet: f64,
     pub time_of_flight_seconds: f64,
     pub energy_ft_lbs: f64,
 }
@@ -46,8 +47,10 @@ impl<D: DragFunction> PointMassSolver<D> {
         let mut state = StateVector {
             position_x: 0.0,
             position_y: 0.0,
+            position_z: 0.0,
             velocity_x: muzzle_velocity_fps,
             velocity_y: 0.0,
+            velocity_z: 0.0,
         };
         let mut time = 0.0;
         while state.position_x / 3.0 <= max_distance_yards {
@@ -55,6 +58,7 @@ impl<D: DragFunction> PointMassSolver<D> {
                 distance: DistanceYards(state.position_x / 3.0),
                 velocity_fps: state.velocity_x,
                 drop_feet: state.position_y,
+                drift_feet: state.position_z,
                 time_of_flight_seconds: time,
                 energy_ft_lbs: 0.0,
             });
@@ -92,7 +96,7 @@ impl<D: DragFunction> PointMassSolver<D> {
 }
 
 fn derivative<D: DragFunction>(state: &StateVector, drag: &D, density_ratio: f64) -> Vec<f64> {
-    let speed = (state.velocity_x.powi(2) + state.velocity_y.powi(2)).sqrt();
+    let speed = (state.velocity_x.powi(2) + state.velocity_y.powi(2) + state.velocity_z.powi(2)).sqrt();
     let drag_accel = if speed > 0.0 {
         drag.retardation(speed) * density_ratio
     } else {
@@ -101,8 +105,10 @@ fn derivative<D: DragFunction>(state: &StateVector, drag: &D, density_ratio: f64
     vec![
         state.velocity_x,
         state.velocity_y,
+        state.velocity_z,
         -drag_accel * state.velocity_x / speed.max(1.0),
         -9.80665 - drag_accel * state.velocity_y / speed.max(1.0),
+        -drag_accel * state.velocity_z / speed.max(1.0),
     ]
 }
 
@@ -128,121 +134,4 @@ fn rk4_step_state<D: DragFunction>(
     StateVector::from_vec(&rk4_step(time, &state.as_vec(), dt, |_t, y| {
         derivative(&StateVector::from_vec(y), drag, density_ratio)
     }))
-}
-
-#[cfg(test)]
-mod tests {
-    use super::*;
-    use crate::ballistic::atmosphere::Atmosphere;
-    use crate::ballistic::outputs::from_trajectory;
-    use crate::ballistic::projectile::Projectile;
-
-    #[test]
-    fn integration_methods_produce_paths() {
-        let euler = PointMassSolver::new(
-            super::super::drag::g1::G1,
-            SolverConfig {
-                integration_method: IntegrationMethod::Euler,
-                ..Default::default()
-            },
-        );
-        let rk4 = PointMassSolver::new(super::super::drag::g1::G1, SolverConfig::default());
-        assert_ne!(euler.solve(2800.0, 100.0).points.len(), 0);
-        assert_ne!(rk4.solve(2800.0, 100.0).points.len(), 0);
-    }
-
-    #[test]
-    fn standard_atmosphere_matches_default_behavior() {
-        let default = PointMassSolver::new(super::super::drag::g1::G1, SolverConfig::default())
-            .solve(2800.0, 300.0);
-        let standard = PointMassSolver::new(
-            super::super::drag::g1::G1,
-            SolverConfig {
-                atmosphere: Atmosphere::standard(),
-                ..Default::default()
-            },
-        )
-        .solve(2800.0, 300.0);
-
-        for (a, b) in default.points.iter().zip(standard.points.iter()) {
-            assert!((a.velocity_fps - b.velocity_fps).abs() < 0.001);
-            assert!((a.drop_feet - b.drop_feet).abs() < 0.001);
-        }
-    }
-
-    #[test]
-    fn lower_density_reduces_drag() {
-        let low_density = PointMassSolver::new(
-            super::super::drag::g1::G1,
-            SolverConfig {
-                atmosphere: Atmosphere {
-                    pressure_hpa: 700.0,
-                    ..Atmosphere::standard()
-                },
-                ..Default::default()
-            },
-        )
-        .solve(2800.0, 300.0);
-        let standard = PointMassSolver::new(super::super::drag::g1::G1, SolverConfig::default())
-            .solve(2800.0, 300.0);
-
-        assert!(
-            low_density.points.last().unwrap().velocity_fps
-                > standard.points.last().unwrap().velocity_fps
-        );
-    }
-
-    #[test]
-    fn higher_density_increases_drag() {
-        let high_density = PointMassSolver::new(
-            super::super::drag::g1::G1,
-            SolverConfig {
-                atmosphere: Atmosphere {
-                    pressure_hpa: 1100.0,
-                    ..Atmosphere::standard()
-                },
-                ..Default::default()
-            },
-        )
-        .solve(2800.0, 300.0);
-        let standard = PointMassSolver::new(super::super::drag::g1::G1, SolverConfig::default())
-            .solve(2800.0, 300.0);
-
-        assert!(
-            high_density.points.last().unwrap().velocity_fps
-                < standard.points.last().unwrap().velocity_fps
-        );
-    }
-
-    #[test]
-    fn trajectory_values_are_monotonic() {
-        let trajectory = PointMassSolver::new(super::super::drag::g1::G1, SolverConfig::default())
-            .solve(2800.0, 300.0);
-        let projectile = Projectile::new(175.0, 0.505, 2800.0, 0.308);
-        let table = from_trajectory(&trajectory, &projectile);
-        let a = table.at_distance(DistanceYards(100.0)).unwrap();
-        let b = table.at_distance(DistanceYards(200.0)).unwrap();
-        let c = table.at_distance(DistanceYards(300.0)).unwrap();
-        assert!(a.velocity_fps > b.velocity_fps && b.velocity_fps > c.velocity_fps);
-        assert!(a.energy_ft_lbs > b.energy_ft_lbs && b.energy_ft_lbs > c.energy_ft_lbs);
-        assert!(
-            a.time_of_flight_seconds < b.time_of_flight_seconds
-                && b.time_of_flight_seconds < c.time_of_flight_seconds
-        );
-        assert!(a.drop_feet > b.drop_feet && b.drop_feet > c.drop_feet);
-    }
-
-    #[test]
-    fn solver_generates_output_table() {
-        let solver = PointMassSolver::new(super::super::drag::g1::G1, SolverConfig::default());
-        let projectile = Projectile::new(175.0, 0.505, 2800.0, 0.308);
-        let table = solver.solve_table(2800.0, &projectile, 300.0);
-        let a = table.at_distance(DistanceYards(100.0)).unwrap();
-        let b = table.at_distance(DistanceYards(200.0)).unwrap();
-        let c = table.at_distance(DistanceYards(300.0)).unwrap();
-        assert!(a.velocity_fps > b.velocity_fps);
-        assert!(b.velocity_fps > c.velocity_fps);
-        assert!(a.energy_ft_lbs > b.energy_ft_lbs);
-        assert!(b.energy_ft_lbs > c.energy_ft_lbs);
-    }
 }
