@@ -210,7 +210,7 @@ mod tests {
 
         assert!(
             high_density.points.last().unwrap().velocity_fps 
-                < standard.points.last().unwrap().velocity_fps
+            < standard.points.last().unwrap().velocity_fps
         );
     }
 
