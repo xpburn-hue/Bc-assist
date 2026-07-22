@@ -107,7 +107,7 @@ fn derivative<D: DragFunction>(
     let relative_velocity_z = state.velocity_z - wind.crosswind_fps;
     let speed =
         (relative_velocity_x.powi(2) + state.velocity_y.powi(2) + relative_velocity_z.powi(2))
-        .sqrt();
+            .sqrt();
 
     let drag_accel = if speed > 0.0 {
         drag.retardation(speed) * density_ratio
