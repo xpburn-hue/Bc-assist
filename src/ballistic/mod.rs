@@ -13,3 +13,4 @@ pub mod regression;
 pub mod solver;
 pub mod state;
 pub mod trajectory;
+pub mod wind;
