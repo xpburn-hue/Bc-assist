@@ -151,3 +151,79 @@ fn rk4_step_state<D: DragFunction>(
         derivative(&StateVector::from_vec(y), drag, density_ratio, wind)
     }))
 }
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+    use crate::ballistic::drag::g7::G7;
+    use crate::ballistic::wind::Wind;
+
+    fn solver_with_wind(wind: Wind) -> PointMassSolver<G7> {
+        let mut config = SolverConfig::default();
+        config.wind = wind;
+
+        PointMassSolver::new(G7, config)
+    }
+
+    #[test]
+    fn calm_wind_matches_default_behavior() {
+        let default_solver = PointMassSolver::new(G7, SolverConfig::default());
+        let calm_solver = solver_with_wind(Wind::calm());
+
+        let default = default_solver.solve(2600.0, 300.0);
+        let calm = calm_solver.solve(2600.0, 300.0);
+
+        let default_last = default.points.last().unwrap();
+        let calm_last = calm.points.last().unwrap();
+
+        assert!((default_last.velocity_fps - calm_last.velocity_fps).abs() < 1e-6);
+        assert!((default_last.drop_feet - calm_last.drop_feet).abs() < 1e-6);
+        assert!((default_last.drift_feet - calm_last.drift_feet).abs() < 1e-6);
+    }
+
+    #[test]
+    fn crosswind_creates_lateral_drift() {
+        let solver = solver_with_wind(Wind {
+            headwind_fps: 0.0,
+            crosswind_fps: 32.0,
+        });
+
+        let trajectory = solver.solve(2600.0, 300.0);
+
+        assert!(trajectory.points.last().unwrap().drift_feet.abs() > 0.0);
+    }
+
+    #[test]
+    fn headwind_increases_drag() {
+        let calm_solver = solver_with_wind(Wind::calm());
+        let headwind_solver = solver_with_wind(Wind {
+            headwind_fps: 50.0,
+            crosswind_fps: 0.0,
+        });
+
+        let calm = calm_solver.solve(2600.0, 300.0);
+        let headwind = headwind_solver.solve(2600.0, 300.0);
+
+        assert!(
+            headwind.points.last().unwrap().velocity_fps
+                < calm.points.last().unwrap().velocity_fps
+        );
+    }
+
+    #[test]
+    fn tailwind_reduces_drag() {
+        let calm_solver = solver_with_wind(Wind::calm());
+        let tailwind_solver = solver_with_wind(Wind {
+            headwind_fps: -50.0,
+            crosswind_fps: 0.0,
+        });
+
+        let calm = calm_solver.solve(2600.0, 300.0);
+        let tailwind = tailwind_solver.solve(2600.0, 300.0);
+
+        assert!(
+            tailwind.points.last().unwrap().velocity_fps
+                > calm.points.last().unwrap().velocity_fps
+        );
+    }
+}
