@@ -70,6 +70,7 @@ impl<D: DragFunction> PointMassSolver<D> {
                     dt,
                     &self.drag_model,
                     self.config.atmosphere.density_ratio(),
+                    self.config.wind,
                 ),
                 IntegrationMethod::RK4 => rk4_step_state(
                     state,
@@ -77,6 +78,7 @@ impl<D: DragFunction> PointMassSolver<D> {
                     dt,
                     &self.drag_model,
                     self.config.atmosphere.density_ratio(),
+                    self.config.wind,
                 ),
             };
             time += dt;
@@ -95,20 +97,32 @@ impl<D: DragFunction> PointMassSolver<D> {
     }
 }
 
-fn derivative<D: DragFunction>(state: &StateVector, drag: &D, density_ratio: f64) -> Vec<f64> {
-    let speed = (state.velocity_x.powi(2) + state.velocity_y.powi(2) + state.velocity_z.powi(2)).sqrt();
+fn derivative<D: DragFunction>(
+    state: &StateVector,
+    drag: &D,
+    density_ratio: f64,
+    wind: super::wind::Wind,
+) -> Vec<f64> {
+    let relative_velocity_x = state.velocity_x + wind.headwind_fps;
+    let relative_velocity_z = state.velocity_z - wind.crosswind_fps;
+    let speed = (relative_velocity_x.powi(2)
+        + state.velocity_y.powi(2)
+        + relative_velocity_z.powi(2))
+    .sqrt();
+
     let drag_accel = if speed > 0.0 {
         drag.retardation(speed) * density_ratio
     } else {
         0.0
     };
+
     vec![
         state.velocity_x,
         state.velocity_y,
         state.velocity_z,
-        -drag_accel * state.velocity_x / speed.max(1.0),
+        -drag_accel * relative_velocity_x / speed.max(1.0),
         -9.80665 - drag_accel * state.velocity_y / speed.max(1.0),
-        -drag_accel * state.velocity_z / speed.max(1.0),
+        -drag_accel * relative_velocity_z / speed.max(1.0),
     ]
 }
 
@@ -118,9 +132,10 @@ fn euler_step_state<D: DragFunction>(
     dt: f64,
     drag: &D,
     density_ratio: f64,
+    wind: super::wind::Wind,
 ) -> StateVector {
     StateVector::from_vec(&euler_step(time, &state.as_vec(), dt, |_t, y| {
-        derivative(&StateVector::from_vec(y), drag, density_ratio)
+        derivative(&StateVector::from_vec(y), drag, density_ratio, wind)
     }))
 }
 
@@ -130,8 +145,9 @@ fn rk4_step_state<D: DragFunction>(
     dt: f64,
     drag: &D,
     density_ratio: f64,
+    wind: super::wind::Wind,
 ) -> StateVector {
     StateVector::from_vec(&rk4_step(time, &state.as_vec(), dt, |_t, y| {
-        derivative(&StateVector::from_vec(y), drag, density_ratio)
+        derivative(&StateVector::from_vec(y), drag, density_ratio, wind)
     }))
 }
