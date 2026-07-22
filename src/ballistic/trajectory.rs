@@ -176,7 +176,7 @@ mod tests {
             super::super::drag::g1::G1,
             SolverConfig {
                 atmosphere: Atmosphere {
-                    pressure: 700.0,
+                    pressure_hpa: 700.0,
                     ..Atmosphere::standard()
                 },
                 ..Default::default()
@@ -186,7 +186,10 @@ mod tests {
         let standard = PointMassSolver::new(super::super::drag::g1::G1, SolverConfig::default())
             .solve(2800.0, 300.0);
 
-        assert!(low_density.last().unwrap().velocity_fps > standard.last().unwrap().velocity_fps);
+        assert!(
+            low_density.points.last().unwrap().velocity_fps 
+            > standard.points.last().unwrap().velocity_fps
+        );
     }
 
     #[test]
@@ -195,7 +198,7 @@ mod tests {
             super::super::drag::g1::G1,
             SolverConfig {
                 atmosphere: Atmosphere {
-                    pressure: 1100.0,
+                    pressure_hpa: 1100.0,
                     ..Atmosphere::standard()
                 },
                 ..Default::default()
@@ -205,7 +208,10 @@ mod tests {
         let standard = PointMassSolver::new(super::super::drag::g1::G1, SolverConfig::default())
             .solve(2800.0, 300.0);
 
-        assert!(high_density.last().unwrap().velocity_fps < standard.last().unwrap().velocity_fps);
+        assert!(
+            high_density.points.last().unwrap().velocity_fps 
+            < standard.points.last().unwrap().velocity_fps
+        );
     }
 
     #[test]
@@ -219,7 +225,9 @@ mod tests {
         let c = table.at_distance(DistanceYards(300.0)).unwrap();
         assert!(a.velocity_fps > b.velocity_fps && b.velocity_fps > c.velocity_fps);
         assert!(a.energy_ft_lbs > b.energy_ft_lbs && b.energy_ft_lbs > c.energy_ft_lbs);
-        assert!(a.time_of_flight_seconds < b.time_of_flight_seconds && b.time_of_flight_seconds < c.time_of_flight_seconds);
+        assert!(a.time_of_flight_seconds < b.time_of_flight_seconds
+            && b.time_of_flight_seconds < c.time_of_flight_seconds
+        );
         assert!(a.drop_feet > b.drop_feet && b.drop_feet > c.drop_feet);
     }
 
