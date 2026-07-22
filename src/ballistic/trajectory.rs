@@ -188,7 +188,7 @@ mod tests {
 
         assert!(
             low_density.points.last().unwrap().velocity_fps 
-            > standard.points.last().unwrap().velocity_fps
+                > standard.points.last().unwrap().velocity_fps
         );
     }
 
@@ -210,7 +210,7 @@ mod tests {
 
         assert!(
             high_density.points.last().unwrap().velocity_fps 
-            < standard.points.last().unwrap().velocity_fps
+                < standard.points.last().unwrap().velocity_fps
         );
     }
 
@@ -225,8 +225,9 @@ mod tests {
         let c = table.at_distance(DistanceYards(300.0)).unwrap();
         assert!(a.velocity_fps > b.velocity_fps && b.velocity_fps > c.velocity_fps);
         assert!(a.energy_ft_lbs > b.energy_ft_lbs && b.energy_ft_lbs > c.energy_ft_lbs);
-        assert!(a.time_of_flight_seconds < b.time_of_flight_seconds
-            && b.time_of_flight_seconds < c.time_of_flight_seconds
+        assert!(
+            a.time_of_flight_seconds < b.time_of_flight_seconds
+                && b.time_of_flight_seconds < c.time_of_flight_seconds
         );
         assert!(a.drop_feet > b.drop_feet && b.drop_feet > c.drop_feet);
     }
