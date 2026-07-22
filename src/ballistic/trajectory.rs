@@ -105,10 +105,9 @@ fn derivative<D: DragFunction>(
 ) -> Vec<f64> {
     let relative_velocity_x = state.velocity_x + wind.headwind_fps;
     let relative_velocity_z = state.velocity_z - wind.crosswind_fps;
-    let speed = (relative_velocity_x.powi(2)
-        + state.velocity_y.powi(2)
-        + relative_velocity_z.powi(2))
-    .sqrt();
+    let speed =
+        (relative_velocity_x.powi(2) + state.velocity_y.powi(2) + relative_velocity_z.powi(2))
+        .sqrt();
 
     let drag_accel = if speed > 0.0 {
         drag.retardation(speed) * density_ratio
@@ -205,8 +204,7 @@ mod tests {
         let headwind = headwind_solver.solve(2600.0, 300.0);
 
         assert!(
-            headwind.points.last().unwrap().velocity_fps
-                < calm.points.last().unwrap().velocity_fps
+            headwind.points.last().unwrap().velocity_fps < calm.points.last().unwrap().velocity_fps
         );
     }
 
@@ -222,8 +220,7 @@ mod tests {
         let tailwind = tailwind_solver.solve(2600.0, 300.0);
 
         assert!(
-            tailwind.points.last().unwrap().velocity_fps
-                > calm.points.last().unwrap().velocity_fps
+            tailwind.points.last().unwrap().velocity_fps > calm.points.last().unwrap().velocity_fps
         );
     }
 }
