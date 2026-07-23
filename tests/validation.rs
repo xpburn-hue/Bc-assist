@@ -1,21 +1,77 @@
 mod validation;
 
 use approx::assert_relative_eq;
+use bc_assist::ballistic::config::SolverConfig;
 use bc_assist::ballistic::drag::g7::G7;
 use bc_assist::ballistic::trajectory::PointMassSolver;
-use bc_assist::ballistic::config::SolverConfig;
+use serde::Deserialize;
+
+#[derive(Debug, Deserialize)]
+struct GoldenFixture {
+    name: String,
+    conditions: FixtureConditions,
+    points: Vec<GoldenPoint>,
+    tolerances: FixtureTolerances,
+}
+
+#[derive(Debug, Deserialize)]
+struct FixtureConditions {
+    muzzle_velocity_fps: f64,
+    max_distance_yards: f64,
+}
+
+#[derive(Debug, Deserialize)]
+struct GoldenPoint {
+    range_yards: f64,
+    velocity_fps: f64,
+    drop_feet: f64,
+    time_of_flight_seconds: f64,
+}
+
+#[derive(Debug, Deserialize)]
+struct FixtureTolerances {
+    velocity_fps: f64,
+    drop_feet: f64,
+    time_seconds: f64,
+}
+
+fn load_fixture() -> GoldenFixture {
+    serde_json::from_str(include_str!("validation/fixtures/g7_baseline.json"))
+        .expect("golden fixture should parse")
+}
 
 #[test]
-fn baseline_trajectory_regression_fixture() {
+fn golden_fixture_matches_solver_output() {
+    let fixture = load_fixture();
     let solver = PointMassSolver::new(G7, SolverConfig::default());
-    let trajectory = solver.solve(2600.0, 300.0);
+    let trajectory = solver.solve(
+        fixture.conditions.muzzle_velocity_fps,
+        fixture.conditions.max_distance_yards,
+    );
 
-    let final_point = trajectory.points.last().expect("trajectory should contain points");
+    for expected in fixture.points {
+        let actual = trajectory
+            .points
+            .iter()
+            .find(|point| (point.range_yards - expected.range_yards).abs() < 0.5)
+            .expect("trajectory should contain fixture range");
 
-    // Baseline values are generated from the current deterministic solver.
-    // These values become the regression guard as solver features evolve.
-    assert_relative_eq!(final_point.velocity_fps, 1928.0, epsilon = 200.0);
-    assert!(final_point.time_of_flight_seconds > 0.0);
+        assert_relative_eq!(
+            actual.velocity_fps,
+            expected.velocity_fps,
+            epsilon = fixture.tolerances.velocity_fps
+        );
+        assert_relative_eq!(
+            actual.drop_feet,
+            expected.drop_feet,
+            epsilon = fixture.tolerances.drop_feet
+        );
+        assert_relative_eq!(
+            actual.time_of_flight_seconds,
+            expected.time_of_flight_seconds,
+            epsilon = fixture.tolerances.time_seconds
+        );
+    }
 }
 
 #[test]
