@@ -1,0 +1,23 @@
+{
+  "name": "g7_baseline_2600fps_300yd",
+  "description": "Initial deterministic solver baseline fixture",
+  "conditions": {
+    "muzzle_velocity_fps": 2600.0,
+    "max_distance_yards": 300.0,
+    "drag_model": "G7",
+    "step_size_yards": 1.0
+  },
+  "points": [
+    {
+      "range_yards": 0.0,
+      "velocity_fps": 2600.0,
+      "drop_feet": 0.0,
+      "time_of_flight_seconds": 0.0
+    }
+  ],
+  "tolerances": {
+    "velocity_fps": 1.0,
+    "drop_feet": 0.01,
+    "time_seconds": 0.001
+  }
+}
