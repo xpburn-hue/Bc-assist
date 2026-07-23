@@ -56,22 +56,36 @@ fn golden_fixture_matches_solver_output() {
             .find(|point| (point.range_yards - expected.range_yards).abs() < 0.5)
             .expect("trajectory should contain fixture range");
 
-        assert_relative_eq!(
-            actual.velocity_fps,
-            expected.velocity_fps,
-            epsilon = fixture.tolerances.velocity_fps
-        );
-        assert_relative_eq!(
-            actual.drop_feet,
-            expected.drop_feet,
-            epsilon = fixture.tolerances.drop_feet
-        );
-        assert_relative_eq!(
-            actual.time_of_flight_seconds,
-            expected.time_of_flight_seconds,
-            epsilon = fixture.tolerances.time_seconds
-        );
+        assert_relative_eq!(actual.velocity_fps, expected.velocity_fps, epsilon = fixture.tolerances.velocity_fps);
+        assert_relative_eq!(actual.drop_feet, expected.drop_feet, epsilon = fixture.tolerances.drop_feet);
+        assert_relative_eq!(actual.time_of_flight_seconds, expected.time_of_flight_seconds, epsilon = fixture.tolerances.time_seconds);
     }
+}
+
+#[test]
+fn timestep_changes_converge() {
+    let mut coarse = SolverConfig::default();
+    coarse.step_size_yards = 2.0;
+
+    let mut fine = SolverConfig::default();
+    fine.step_size_yards = 0.5;
+
+    let coarse_result = PointMassSolver::new(G7, coarse).solve(2600.0, 300.0);
+    let fine_result = PointMassSolver::new(G7, fine).solve(2600.0, 300.0);
+
+    let coarse_final = coarse_result.points.last().unwrap();
+    let fine_final = fine_result.points.last().unwrap();
+
+    assert_relative_eq!(
+        coarse_final.velocity_fps,
+        fine_final.velocity_fps,
+        epsilon = 5.0
+    );
+    assert_relative_eq!(
+        coarse_final.drop_feet,
+        fine_final.drop_feet,
+        epsilon = 0.1
+    );
 }
 
 #[test]
